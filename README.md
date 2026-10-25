@@ -6,8 +6,6 @@ aggregated into sold/available counts (overall + per section), and displayed
 as a grid of cards. The show title is injected into the page at runtime from
 the configured show data.
 
-Live example: [show-tracker.<your-subdomain>.workers.dev]
-
 ## Architecture
 
 The ticketing API sits behind PerimeterX bot protection, which blocks
