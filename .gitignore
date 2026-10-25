@@ -1,0 +1,18 @@
+# --- secrets / environment-specific ---
+# Real config with your KV namespace ID and venue event IDs
+shows.json
+wrangler.toml
+
+# PerimeterX session cookies (sensitive — harvested from your browser)
+cookies.txt
+
+# Machine-specific scheduler wrapper (contains absolute paths)
+run.cmd
+
+# Logs and build/dev artifacts
+logs/
+.wrangler/
+.kv-bulk.json
+
+# Dependencies
+node_modules/

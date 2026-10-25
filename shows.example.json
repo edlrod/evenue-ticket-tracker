@@ -1,0 +1,32 @@
+{
+  "defaults": {
+    "name": "Show Name",
+    "upstreamHost": "https://venue.evenue.net",
+    "upstreamReferer": "https://venue.evenue.net/events/event-name",
+    "distributorId": "DISTRIBUTOR",
+    "policyCd": "DISTRIBUTOR:DEFAULT:I",
+    "policyType": "I",
+    "sections": [
+      "BALC:CENTER",
+      "BALC:LEFT",
+      "BALC:RIGHT",
+      "FLOOR:CENTER",
+      "FLOOR:LEFT",
+      "FLOOR:RIGHT"
+    ]
+  },
+  "shows": [
+    {
+      "eventId": "000:A0000:00000show",
+      "date": "2026-01-01",
+      "time": "19:30",
+      "type": "evening"
+    },
+    {
+      "eventId": "000:A0000:00000showM",
+      "date": "2026-01-02",
+      "time": "14:00",
+      "type": "matinee"
+    }
+  ]
+}

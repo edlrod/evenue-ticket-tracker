@@ -1,0 +1,24 @@
+name = "show-tracker"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+
+# Static frontend served from the same worker. Requests matching a file in
+# ./public are served directly; everything else (e.g. /api/*) hits the worker.
+[assets]
+directory = "./public"
+not_found_handling = "single-page-application"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# NOTE: no cron trigger — data is refreshed by scripts/fetcher.mjs running
+# on a machine with a residential IP (the ticketing API's bot protection
+# blocks datacenter IPs such as the ones Cloudflare Workers egress from).
+
+[vars]
+# How long cached data is considered fresh, in seconds.
+CACHE_TTL_SECONDS = "300"
+# Allowed Origin for browser clients. Same-origin assets make this mostly
+# moot; "*" is fine for local dev.
+ALLOWED_ORIGIN = "*"
