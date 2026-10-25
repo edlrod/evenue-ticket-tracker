@@ -7,8 +7,9 @@
  * to the production KV namespace in a single bulk call via wrangler.
  *
  * Usage:
- *   node scripts/fetcher.mjs
- *   (requires `npx wrangler login` to have been run at least once)
+ *   bun scripts/fetcher.mjs            → fetch + push to production KV
+ *   bun scripts/fetcher.mjs --local    → fetch + push to `bun run dev` KV
+ *   (requires `wrangler login` to have been run at least once)
  */
 
 import { getShows, isConfigured, fetchShow } from "../src/lib.js";
@@ -40,6 +41,10 @@ function isPastShow(show) {
 }
 
 async function main() {
+  // --local: push to the simulated KV used by `bun run dev` (wrangler dev)
+  // instead of the production namespace. Useful for developing the frontend.
+  const local = process.argv.includes("--local");
+
   // Cookie source, in priority order:
   //   1. PX_COOKIES env var          (PX_COOKIES="_px3=...; _pxhd=..." bun scripts/fetcher.mjs)
   //   2. cookies.txt in project root (one header-style line: "_px3=...; _pxhd=...")
@@ -57,9 +62,31 @@ async function main() {
 
   const shows = getShows().filter(isConfigured);
   const upcoming = shows.filter((s) => !isPastShow(s));
-  const skipped = shows.length - upcoming.length;
+  const past = shows.filter(isPastShow);
+  const skipped = past.length;
   if (skipped > 0) {
     console.log(`Skipping ${skipped} past show(s) — final numbers already cached.`);
+  }
+
+  // In local mode the simulated KV starts empty, so seed the past shows'
+  // final numbers from production KV (upcoming shows get fetched fresh).
+  const entries = [];
+  if (local) {
+    for (const show of past) {
+      try {
+        const key = `availability:${show.eventId}`;
+        const raw = execFileSync(
+          process.execPath,
+          ["x", "wrangler", "kv", "key", "get", key, `--namespace-id=${NAMESPACE_ID}`, "--remote"],
+          { cwd: fileURLToPath(new URL("..", import.meta.url)) }
+        ).toString();
+        JSON.parse(raw); // validate before pushing
+        entries.push({ key, value: raw });
+        console.log(`  ↻ ${show.label}: seeded from production KV`);
+      } catch (err) {
+        console.warn(`  ✗ ${show.label}: no production cache to seed (${err.message.split("\n")[0]})`);
+      }
+    }
   }
 
   if (upcoming.length === 0) {
@@ -69,7 +96,6 @@ async function main() {
 
   console.log(`Fetching ${upcoming.length} shows…`);
 
-  const entries = [];
   // Sequential with a gap: bursts of parallel requests are exactly what
   // tripped PerimeterX in the first place. Look like a browsing human.
   for (const show of upcoming) {
@@ -88,12 +114,11 @@ async function main() {
     await new Promise((r) => setTimeout(r, 1500));
   }
 
-  if (entries.length === 0) {
-    console.error("All fetches failed - nothing pushed to KV.");
+  const ok = entries;
+  if (ok.length === 0) {
+    console.error("Nothing to push to KV.");
     process.exit(1);
   }
-
-  const ok = entries;
 
   const bulkFile = new URL("../.kv-bulk.json", import.meta.url);
   writeFileSync(bulkFile, JSON.stringify(ok));
@@ -107,14 +132,21 @@ async function main() {
       "bulk",
       "put",
       winPath(bulkFile),
-      `--namespace-id=${NAMESPACE_ID}`,
-      "--remote",
+      ...(local
+        ? // Local mode: target the simulated KV of `wrangler dev`, addressed
+          // by binding name (no namespace id needed).
+          ["--binding=CACHE", "--local"]
+        : [`--namespace-id=${NAMESPACE_ID}`, "--remote"]),
     ];
     execFileSync(process.execPath, args, {
       stdio: "inherit",
       cwd: fileURLToPath(new URL("..", import.meta.url)),
     });
-    console.log(`Pushed ${ok.length}/${upcoming.length} upcoming shows to KV.`);
+    console.log(
+      local
+        ? `Pushed ${ok.length}/${shows.length} shows to local dev KV.`
+        : `Pushed ${ok.length}/${upcoming.length} upcoming shows to KV.`
+    );
   } finally {
     unlinkSync(bulkFile);
   }
