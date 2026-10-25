@@ -61,44 +61,29 @@ async function main() {
   if (cookies) console.log("Using PX cookies from " + (process.env.PX_COOKIES ? "env" : "cookies.txt"));
 
   const shows = getShows().filter(isConfigured);
-  const upcoming = shows.filter((s) => !isPastShow(s));
-  const past = shows.filter(isPastShow);
-  const skipped = past.length;
-  if (skipped > 0) {
-    console.log(`Skipping ${skipped} past show(s) — final numbers already cached.`);
-  }
 
-  // In local mode the simulated KV starts empty, so seed the past shows'
-  // final numbers from production KV (upcoming shows get fetched fresh).
-  const entries = [];
-  if (local) {
-    for (const show of past) {
-      try {
-        const key = `availability:${show.eventId}`;
-        const raw = execFileSync(
-          process.execPath,
-          ["x", "wrangler", "kv", "key", "get", key, `--namespace-id=${NAMESPACE_ID}`, "--remote"],
-          { cwd: fileURLToPath(new URL("..", import.meta.url)) }
-        ).toString();
-        JSON.parse(raw); // validate before pushing
-        entries.push({ key, value: raw });
-        console.log(`  ↻ ${show.label}: seeded from production KV`);
-      } catch (err) {
-        console.warn(`  ✗ ${show.label}: no production cache to seed (${err.message.split("\n")[0]})`);
-      }
+  // In local mode, fetch EVERYTHING live — the simulated KV may be empty, so
+  // past shows need real data too. Normal mode skips past shows since their
+  // final numbers are already in production KV.
+  const toFetch = local ? shows : shows.filter((s) => !isPastShow(s));
+  if (!local) {
+    const skipped = shows.length - toFetch.length;
+    if (skipped > 0) {
+      console.log(`Skipping ${skipped} past show(s) — final numbers already cached.`);
     }
   }
 
-  if (upcoming.length === 0) {
+  if (toFetch.length === 0) {
     console.log("Nothing to fetch — all shows are in the past.");
     return;
   }
 
-  console.log(`Fetching ${upcoming.length} shows…`);
+  console.log(`Fetching ${toFetch.length} shows…`);
 
+  const entries = [];
   // Sequential with a gap: bursts of parallel requests are exactly what
   // tripped PerimeterX in the first place. Look like a browsing human.
-  for (const show of upcoming) {
+  for (const show of toFetch) {
     try {
       const data = await fetchShow(show, cookies);
       console.log(
@@ -145,7 +130,7 @@ async function main() {
     console.log(
       local
         ? `Pushed ${ok.length}/${shows.length} shows to local dev KV.`
-        : `Pushed ${ok.length}/${upcoming.length} upcoming shows to KV.`
+        : `Pushed ${ok.length}/${toFetch.length} shows to KV.`
     );
   } finally {
     unlinkSync(bulkFile);
