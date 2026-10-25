@@ -44,7 +44,20 @@ export function buildLabel(show) {
   // UTC-anchored so the weekday/date never shift with the runner's timezone.
   const dt = new Date(Date.UTC(y, m - 1, d, hh, mm));
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const h12 = ((hh + 11) % 12) + 1;
   const ampm = hh < 12 ? "AM" : "PM";
   return `${days[dt.getUTCDay()]}, ${months[m - 1]} ${d} · ${h12}:${String(mm).padStart(2, "0")} ${ampm}`;
@@ -72,14 +85,14 @@ export async function fetchShow(show, cookies = "") {
   if (!host) throw new Error("upstreamHost not set in shows.json defaults");
 
   const url = `${host}/pac-api/seat-availability/event-id/${encodeURIComponent(
-    show.eventId
+    show.eventId,
   )}/seatAvailabilityForSections?${params.toString()}`;
 
   const headers = {
     "User-Agent": BROWSER_UA,
-    "Origin": host,
-    "Referer": show.upstreamReferer || `${host}/events/`,
-    "Accept": "application/json, text/plain, */*",
+    Origin: host,
+    Referer: show.upstreamReferer || `${host}/events/`,
+    Accept: "application/json, text/plain, */*",
   };
   // PerimeterX session cookies harvested from a real browser (see
   // scripts/fetcher.mjs for how to supply them). Without these, PX scores
@@ -94,7 +107,10 @@ export async function fetchShow(show, cookies = "") {
   // The response is [ [rows...], ["LEVELSECTIONCD","ROWCD","SEATCD","AVAILABLE"] ].
   // Each row is [section, row, seat, availableFlag].
   const payload = await res.json();
-  const seats = Array.isArray(payload) && Array.isArray(payload[0]?.[0]) ? payload[0] : payload;
+  const seats =
+    Array.isArray(payload) && Array.isArray(payload[0]?.[0])
+      ? payload[0]
+      : payload;
 
   const sections = {};
   let sold = 0;
@@ -136,7 +152,7 @@ export async function fetchShow(show, cookies = "") {
             pctSold: st === 0 ? 0 : Math.round((s.sold / st) * 1000) / 10,
           },
         ];
-      })
+      }),
     ),
   };
 }

@@ -44,7 +44,9 @@ function showCard(show) {
   const sectionsHtml = show.sections
     ? `<details class="sections">
          <summary>Section breakdown</summary>
-         ${Object.entries(show.sections).map(([n, s]) => sectionRow(n, s)).join("")}
+         ${Object.entries(show.sections)
+           .map(([n, s]) => sectionRow(n, s))
+           .join("")}
        </details>`
     : "";
 
@@ -81,7 +83,8 @@ async function load() {
     errorBanner.textContent = "";
 
     const shows = (data.shows || []).slice().sort((a, b) => {
-      const da = a.date || "", db = b.date || "";
+      const da = a.date || "",
+        db = b.date || "";
       if (da !== db) return da < db ? -1 : 1;
       return (a.time || "") < (b.time || "") ? -1 : 1;
     });
@@ -95,13 +98,18 @@ async function load() {
       document.title = `${title} - Ticket Tracker`;
     }
 
-    const ages = shows.filter((s) => s.ageSeconds != null).map((s) => s.ageSeconds);
+    const ages = shows
+      .filter((s) => s.ageSeconds != null)
+      .map((s) => s.ageSeconds);
     const maxAge = ages.length ? Math.max(...ages) : null;
     updatedEl.textContent =
       "updated " + (maxAge != null ? fmtAge(maxAge) : "…");
 
     // Client-side total across all successfully loaded shows.
-    const totalSold = shows.reduce((sum, s) => sum + (s.totals ? s.totals.sold : 0), 0);
+    const totalSold = shows.reduce(
+      (sum, s) => sum + (s.totals ? s.totals.sold : 0),
+      0,
+    );
     totalSoldEl.textContent = `Total sold: ${totalSold.toLocaleString()}`;
   } catch (err) {
     errorBanner.textContent = `Couldn't load availability: ${err.message}`;

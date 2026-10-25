@@ -17,8 +17,10 @@ import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const NAMESPACE_ID = readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8")
-  .match(/id\s*=\s*"([0-9a-f]+)"/)?.[1];
+const NAMESPACE_ID = readFileSync(
+  new URL("../wrangler.toml", import.meta.url),
+  "utf8",
+).match(/id\s*=\s*"([0-9a-f]+)"/)?.[1];
 if (!NAMESPACE_ID) {
   console.error("Could not read KV namespace id from wrangler.toml");
   process.exit(1);
@@ -53,12 +55,19 @@ async function main() {
   let cookies = process.env.PX_COOKIES || "";
   if (!cookies) {
     try {
-      cookies = readFileSync(new URL("../cookies.txt", import.meta.url), "utf8").trim();
+      cookies = readFileSync(
+        new URL("../cookies.txt", import.meta.url),
+        "utf8",
+      ).trim();
     } catch {
       // No cookies file - fine, requests just run cookieless (may get blocked).
     }
   }
-  if (cookies) console.log("Using PX cookies from " + (process.env.PX_COOKIES ? "env" : "cookies.txt"));
+  if (cookies)
+    console.log(
+      "Using PX cookies from " +
+        (process.env.PX_COOKIES ? "env" : "cookies.txt"),
+    );
 
   const shows = getShows().filter(isConfigured);
 
@@ -69,7 +78,9 @@ async function main() {
   if (!local) {
     const skipped = shows.length - toFetch.length;
     if (skipped > 0) {
-      console.log(`Skipping ${skipped} past show(s) — final numbers already cached.`);
+      console.log(
+        `Skipping ${skipped} past show(s) — final numbers already cached.`,
+      );
     }
   }
 
@@ -87,7 +98,7 @@ async function main() {
     try {
       const data = await fetchShow(show, cookies);
       console.log(
-        `  ✓ ${show.label}: ${data.totals.sold}/${data.totals.total} sold (${data.totals.pctSold}%)`
+        `  ✓ ${show.label}: ${data.totals.sold}/${data.totals.total} sold (${data.totals.pctSold}%)`,
       );
       entries.push({
         key: `availability:${show.eventId}`,
@@ -130,7 +141,7 @@ async function main() {
     console.log(
       local
         ? `Pushed ${ok.length}/${shows.length} shows to local dev KV.`
-        : `Pushed ${ok.length}/${toFetch.length} shows to KV.`
+        : `Pushed ${ok.length}/${toFetch.length} shows to KV.`,
     );
   } finally {
     unlinkSync(bulkFile);

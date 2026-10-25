@@ -29,7 +29,14 @@ export default {
       return handleSingleShow(env, eventId, origin);
     }
 
-    return json({ status: "ok", routes: ["/api/availability", "/api/availability/<eventId>"] }, 200, origin);
+    return json(
+      {
+        status: "ok",
+        routes: ["/api/availability", "/api/availability/<eventId>"],
+      },
+      200,
+      origin,
+    );
   },
   // No scheduled handler: the local fetcher refreshes KV on its own schedule.
 };
