@@ -18,6 +18,12 @@ function fmtAge(seconds) {
   return `${m}m ago`;
 }
 
+// Local-date "YYYY-MM-DD", matching how the fetcher decides a show is past.
+function todayLocal() {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+}
+
 function sectionRow(name, s) {
   const pct = s.total === 0 ? 0 : Math.round((s.sold / s.total) * 100);
   return `
@@ -68,7 +74,7 @@ function showCard(show) {
       </div>
       ${sectionsHtml}
       <div class="card-foot">
-        <span>data ${fmtAge(show.ageSeconds)}</span>
+        <span>${show.date && show.date < todayLocal() ? "final" : `data ${fmtAge(show.ageSeconds)}`}</span>
       </div>
     </div>`;
 }
@@ -98,12 +104,19 @@ async function load() {
       document.title = `${title} - Ticket Tracker`;
     }
 
-    const ages = shows
-      .filter((s) => s.ageSeconds != null)
+    // Header age should reflect the live data only: past shows are frozen
+    // (the fetcher no longer refreshes them), so exclude them. Take the
+    // oldest live age — that's how stale the updatable data can be.
+    const today = todayLocal();
+    const liveAges = shows
+      .filter(
+        (s) => s.ageSeconds != null && !(s.date && s.date < today),
+      )
       .map((s) => s.ageSeconds);
-    const maxAge = ages.length ? Math.max(...ages) : null;
-    updatedEl.textContent =
-      "updated " + (maxAge != null ? fmtAge(maxAge) : "…");
+    const oldestLive = liveAges.length ? Math.max(...liveAges) : null;
+    updatedEl.textContent = liveAges.length
+      ? "updated " + fmtAge(oldestLive)
+      : "all shows final";
 
     // Client-side total across all successfully loaded shows.
     const totalSold = shows.reduce(
